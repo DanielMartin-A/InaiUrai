@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inaiurai.dev/schemas/summarize.v1.json",
+  "title": "Summarize",
+  "description": "Input and output schemas for the Summarize capability",
+  "type": "object",
+  "properties": {
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "format"],
+      "properties": {
+        "text": { "type": "string", "maxLength": 100000 },
+        "format": { "type": "string", "enum": ["paragraph", "bullets"] },
+        "focus": { "type": "string" }
+      }
+    },
+    "output_schema": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "summary", "word_count", "key_topics"],
+          "properties": {
+            "status": { "type": "string", "enum": ["success"] },
+            "summary": { "type": "string" },
+            "word_count": { "type": "integer", "minimum": 0 },
+            "key_topics": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "error"],
+          "properties": {
+            "status": { "type": "string", "enum": ["error"] },
+            "error": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "message"],
+              "properties": {
+                "code": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": ["input_schema", "output_schema"]
+}

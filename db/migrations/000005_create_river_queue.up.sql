@@ -1,0 +1,3 @@
+-- 000005_create_river_queue.up.sql
+-- River queue tables are created at runtime by github.com/riverqueue/river
+-- via river.Migrate() or equivalent. No DDL here; migration file exists for ordering.

@@ -1,0 +1,37 @@
+# --- Security (NEVER PUSH THESE) ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Go ---
+/backend/api
+/backend/bin/
+/backend/dist/
+*.exe
+*.test
+coverage.out
+coverage.html
+
+# --- Python ---
+__pycache__/
+*.pyc
+/agents/venv/
+/agents/.pytest_cache/
+.coverage
+
+# --- Next.js / Node ---
+node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+.npm
+*.log
+
+# --- System & Misc ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+tmp/

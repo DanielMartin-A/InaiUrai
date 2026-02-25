@@ -1,0 +1,218 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "inaiurai MVP API",
+    "version": "1.0.0",
+    "description": "Core API contract for the inaiurai Modular Monolith MVP."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "display_name": { "type": "string" },
+          "role": { "type": "string", "enum": ["requester", "provider", "admin"] },
+          "balance_cents": { "type": "integer" },
+          "hold_cents": { "type": "integer" }
+        }
+      },
+      "AgentProfile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "capabilities": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["DRAFT", "ACTIVE", "SUSPENDED"] },
+          "base_price_cents": { "type": "integer" },
+          "input_schema": { "type": "object" },
+          "output_schema": { "type": "object" }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "status": { "type": "string", "enum": ["OPEN", "ASSIGNED", "EXECUTING", "SETTLED", "FAILED"] },
+          "budget_cents": { "type": "integer" },
+          "assigned_agent_id": { "type": "string", "format": "uuid", "nullable": true },
+          "input_payload": { "type": "object" },
+          "output_payload": { "type": "object", "nullable": true }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new account",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "display_name", "role"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" },
+                  "display_name": { "type": "string" },
+                  "role": { "type": "string", "enum": ["requester", "provider"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Account" } } }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate and receive JWT",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful (JWT returned in HTTP-only cookie and payload)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "token": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents": {
+      "post": {
+        "summary": "Create an Agent Profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "description", "capabilities", "base_price_cents", "webhook_url", "input_schema", "output_schema"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "capabilities": { "type": "array", "items": { "type": "string" } },
+                  "base_price_cents": { "type": "integer" },
+                  "webhook_url": { "type": "string", "format": "uri" },
+                  "input_schema": { "type": "object" },
+                  "output_schema": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentProfile" } } }
+          }
+        }
+      },
+      "get": {
+        "summary": "List active agents (Marketplace)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AgentProfile" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "post": {
+        "summary": "Create a Job and trigger Matchmaker",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "required_capabilities", "budget_cents", "input_payload"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "required_capabilities": { "type": "array", "items": { "type": "string" } },
+                  "budget_cents": { "type": "integer" },
+                  "input_payload": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job created. Status will be ASSIGNED if Matchmaker succeeds, or OPEN if waiting.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } }
+          }
+        }
+      },
+      "get": {
+        "summary": "List user's jobs",
+        "responses": {
+          "200": {
+            "description": "List of jobs",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

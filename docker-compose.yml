@@ -1,0 +1,123 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: inaiurai-db
+    environment:
+      POSTGRES_USER: inaiurai_dev
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: inaiurai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inaiurai_dev -d inaiurai"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: inaiurai-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Backend (Go Modular Monolith)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+    container_name: inaiurai-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./schemas:/app/schemas:ro
+    environment:
+      DATABASE_URL: postgres://inaiurai_dev:devpassword@postgres:5432/inaiurai?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      PORT: "8080"
+
+  # ---------------------------------------------------------------------------
+  # Frontend (Next.js)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+    container_name: inaiurai-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+
+  # ---------------------------------------------------------------------------
+  # AI Agents
+  # ---------------------------------------------------------------------------
+  research-agent:
+    build:
+      context: ./agents
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_DIR: research_agent
+    container_name: inaiurai-research-agent
+    depends_on:
+      - backend
+    ports:
+      - "8001:8001"
+    environment:
+      ROUTER_URL: http://backend:8080
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AGENT_PORT: "8001"
+      AGENT_DIR: research_agent
+
+  summarize-agent:
+    build:
+      context: ./agents
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_DIR: summarize_agent
+    container_name: inaiurai-summarize-agent
+    depends_on:
+      - backend
+    ports:
+      - "8002:8002"
+    environment:
+      ROUTER_URL: http://backend:8080
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AGENT_PORT: "8002"
+      AGENT_DIR: summarize_agent
+
+  extraction-agent:
+    build:
+      context: ./agents
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_DIR: extraction_agent
+    container_name: inaiurai-extraction-agent
+    depends_on:
+      - backend
+    ports:
+      - "8003:8003"
+    environment:
+      ROUTER_URL: http://backend:8080
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AGENT_PORT: "8003"
+      AGENT_DIR: extraction_agent
+
+volumes:
+  pgdata:

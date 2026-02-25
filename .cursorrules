@@ -1,0 +1,89 @@
+# INAIURAI — Cursor Project Context
+
+## PROJECT OVERVIEW
+Inaiurai is an "Agent-to-Agent Router API" ("Stripe for Agent Capabilities").
+We route tasks from Requester Agents to Worker Agents, validating I/O against strict JSON schemas and handling billing via credit escrow.
+
+## ACTOR MODEL
+1. **Human Developer**: Pays, configures via dashboard.
+2. **Requester Agent**: Calls `/v1/*` API with key.
+3. **Worker Agent**: Receives task via webhook, returns result via callback.
+
+## TECH STACK
+- **Backend**: Go 1.25+, standard `net/http`, `lib/pq`.
+- **DB**: PostgreSQL 16 (UUIDs, JSONB). Redis 7.
+- **Frontend**: Next.js 14 (App Router), Tailwind, shadcn/ui.
+- **Agents**: Python 3.12, FastAPI, Anthropic SDK.
+- **Schema**: `github.com/santhosh-tekuri/jsonschema/v5`.
+
+## DATABASE TABLES (Single Source of Truth)
+
+### accounts
+- `id` UUID PK, `email` UNIQUE, `name`, `company`, `password_hash`
+- `credit_balance` INT (def 1000), `subscription_tier` VARCHAR
+- `global_max_per_task` INT, `global_max_per_day` INT
+- `is_system_account` BOOL (def FALSE)
+- `created_at`, `updated_at`
+
+### agents
+- `id` UUID PK, `account_id` FK, `role` (requester/worker/both)
+- `endpoint_url`, `capabilities_offered` JSONB
+- `availability` (online/offline), `is_verified` BOOL
+- `schema_compliance_rate` REAL, `avg_response_time_ms` INT
+- `created_at`, `updated_at`
+
+### tasks
+- `id` UUID PK, `requester_agent_id` FK, `worker_agent_id` FK
+- `capability_required` VARCHAR, `input_payload` JSONB, `output_payload` JSONB
+- `output_status` VARCHAR (success/partial/error)
+- `status` VARCHAR (created/matching/dispatched/in_progress/completed/failed)
+- `budget` INT, `actual_cost` INT, `platform_fee` INT
+- `deadline` TIMESTAMPTZ, `retry_count` INT
+- `created_at`, `updated_at`
+
+### api_keys
+- `id` UUID PK, `account_id` FK, `key_hash` VARCHAR, `key_prefix` VARCHAR
+- `is_active` BOOL
+
+### credit_ledger
+- `id` UUID PK, `account_id` FK, `task_id` FK
+- `entry_type` (escrow_lock/escrow_release/task_earning/platform_fee/refund)
+- `amount` INT, `balance_after` INT, `created_at`
+
+## CAPABILITY SPECS (Phase 1)
+*Use these specs for Schemas and Validation logic.*
+
+1. **Research**
+   - **Input**: `query` (str 3-1000), `depth` (quick/standard/deep), `max_sources` (int).
+   - **Output**: `status` (enum), `findings`, `key_points`, `sources` [{title, url, relevance}], `error` {code, message}.
+   - **Deadlines**: quick=15s, standard=30s, deep=45s. Price: 8 credits.
+
+2. **Summarize**
+   - **Input**: `text` (max 100k chars), `format` (paragraph/bullets), `focus`.
+   - **Output**: `status`, `summary`, `word_count`, `key_topics`, `error`.
+   - **Deadline**: 15s. Price: 3 credits.
+
+3. **Data Extraction**
+   - **Input**: `text`, `fields` [{name, type, description}].
+   - **Output**: `status`, `extracted_data` (object), `confidence` (0-1), `error`.
+   - **Deadline**: 20s. Price: 5 credits.
+
+## CRITICAL LOGIC FLOWS
+
+### Escrow (Double-Entry)
+1. **Task Created**: Debit requester `budget` (Entry: `escrow_lock`).
+2. **Success/Partial**: 
+   - Credit Platform `actual_cost * 0.10` (`platform_fee`).
+   - Credit Worker `actual_cost * 0.90` (`task_earning`).
+   - Credit Requester remainder (`escrow_release`).
+3. **Error/Fail**: Full refund to Requester (`refund`).
+
+### Python Agents
+- MUST use `FastAPI BackgroundTasks`. 
+- NEVER process synchronously. 
+- Return 200 OK -> Process -> POST result to callback.
+
+## CONSTANTS
+- `SystemPlatformAccountID`: "00000000-0000-0000-0000-000000000001"
+- `AdminAccountID`: "00000000-0000-0000-0000-000000000002"
+- `SeedAPIKey`: "inai_seed_bootstrap_key_do_not_share"

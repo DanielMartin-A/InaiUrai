@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inaiurai.dev/schemas/research.v1.json",
+  "title": "Research",
+  "description": "Input and output schemas for the Research capability",
+  "type": "object",
+  "properties": {
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query", "depth", "max_sources"],
+      "properties": {
+        "query": { "type": "string", "minLength": 3, "maxLength": 1000 },
+        "depth": { "type": "string", "enum": ["quick", "standard", "deep"] },
+        "max_sources": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "output_schema": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "findings", "key_points", "sources"],
+          "properties": {
+            "status": { "type": "string", "enum": ["success"] },
+            "findings": { "type": "string" },
+            "key_points": { "type": "array", "items": { "type": "string" } },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["title", "url", "relevance"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "url": { "type": "string", "format": "uri" },
+                  "relevance": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "findings", "key_points", "sources"],
+          "properties": {
+            "status": { "type": "string", "enum": ["partial"] },
+            "findings": { "type": "string" },
+            "key_points": { "type": "array", "items": { "type": "string" } },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["title", "url", "relevance"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "url": { "type": "string", "format": "uri" },
+                  "relevance": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "error"],
+          "properties": {
+            "status": { "type": "string", "enum": ["error"] },
+            "error": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "message"],
+              "properties": {
+                "code": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": ["input_schema", "output_schema"]
+}

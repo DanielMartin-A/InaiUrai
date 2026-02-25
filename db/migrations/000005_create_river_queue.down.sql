@@ -1,0 +1,1 @@
+-- No-op: River schema is managed by the River library.
