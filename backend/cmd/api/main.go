@@ -143,7 +143,7 @@ func main() {
 	mux.HandleFunc("GET /v1/capabilities", handlers.ListCapabilities)
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "https://stellar-gentleness-production-16de.up.railway.app"},
+		AllowedOrigins:   []string{"http://localhost:3000", "https://inaiurai.up.railway.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
