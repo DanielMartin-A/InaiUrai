@@ -46,24 +46,66 @@ Every step → Audit Trail. Web content → Firewall. Output → Validator.
 - Tier 2 DRAFT: draft_email, draft_document (user must approve)
 - Tier 3 EXECUTE: send_email (authorization + limits) — Phase 2
 
-### Paperclip-Inspired Patterns
+### Paperclip-Inspired Patterns (from github.com/paperclipai/paperclip)
 1. Goal Ancestry: every task carries the engagement objective, the role's
    purpose, completed dependencies, and downstream dependents in the system
    prompt. Agent knows WHY, not just WHAT. Passed via goal_ancestry dict.
 2. Visible Reasoning Trace: /trace/{task_id} endpoint generates human-readable
-   narrative from audit trail.
+   narrative from audit trail. Powers /trace command in Telegram and trace
+   view in dashboard. Customer sees what the agent thought and did.
 3. Per-Role Budget: each role in an engagement can have a monthly_budget_cents.
-   CostMeter checks this before every iteration.
+   CostMeter checks this before every iteration. Prevents any single role
+   from consuming the entire engagement budget.
 4. Atomic Task Checkout: tasks.checked_out_by prevents double-work in
-   multi-agent engagements.
+   multi-agent engagements. UPDATE WHERE checked_out_by IS NULL.
 5. Heartbeat Pattern: roles in ongoing engagements wake on schedule, check
-   for work, and deliver proactively.
+   for work, and deliver proactively. Configured per-role in heartbeat_config.
 
 ## ARCHITECTURE
 
+```
 Channels (Telegram/Slack/PWA/API) → Go Backend → Python Engine → Claude API
                                         ↕
                                    PostgreSQL
+```
+
+## REPO STRUCTURE
+
+```
+InaiUrai/
+├── backend/                     # Go server
+│   ├── cmd/api/main.go          # Entry + routes
+│   ├── internal/
+│   │   ├── models/              # org, member, engagement, task, context, billing
+│   │   ├── repository/          # org_repo, member_repo, engagement_repo, task_repo
+│   │   ├── services/            # telegram, slack, billing, task_manager, task_queue,
+│   │   │                        # context_manager, delivery_router, engagement_service
+│   │   ├── handlers/            # telegram_webhook, slack_webhook, billing_webhook, api_v1
+│   │   ├── middleware/          # rate_limiter, auth
+│   │   ├── push/ sms/ ws/      # Channel infrastructure
+│   └── pkg/
+├── engine/                      # Python AI engine
+│   ├── pipeline/
+│   │   ├── agent_loop.py        # ★ ReAct reasoning loop
+│   │   ├── orchestrator.py      # ★ Dynamic team assembly + engagement planning
+│   │   ├── tool_proxy.py        # ★ Permission gate + tool registry
+│   │   ├── cost_governor.py     # ★ Resource limits
+│   │   ├── audit.py             # ★ Audit trail
+│   │   ├── firewall.py          # ★ Prompt injection defense
+│   │   ├── output_validator.py  # ★ Output checks
+│   │   ├── planner.py           # Intent classifier (Haiku)
+│   │   ├── classifier.py        # Capability classifier
+│   │   └── context_assembler.py # Selective context fetching
+│   ├── tools/                   # web_search, url_reader, doc_parser
+│   ├── configs/roles/base.py    # 16 role definitions
+│   ├── main.py                  # FastAPI app
+│   └── utils.py
+├── frontend/                    # Next.js 14
+├── db/migrations/               # 001-007 SQL
+├── db/seeds/
+├── docker-compose.yml
+└── Makefile
+```
 
 ## DATABASE TABLES
 organizations, members, org_context, member_profiles, engagements,

@@ -15,10 +15,12 @@
 - Role: AI executive spec (system prompt + tools + constraints)
 
 ## Build Commands
+```bash
 make bootstrap    # up + migrate all + seed
 make reset        # clean restart
 make test-all     # all tests
 make logs         # docker compose logs -f
+```
 
 ## Common Tasks
 
@@ -43,4 +45,3 @@ GET /trace/{task_id} on the engine returns a clean narrative:
   Step 2: Read page at buffer.com
   Step 3: Produced final output (2400 chars)
 This powers the /trace Telegram command and dashboard trace view.
-
