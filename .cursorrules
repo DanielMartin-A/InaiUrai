@@ -1,0 +1,83 @@
+# INAIURAI v5.0 — AI Workforce-as-a-Service
+
+## WHAT THIS IS
+
+InaiUrai is a platform where customers hire AI employees. They describe a
+business objective; InaiUrai dynamically assembles the right team of AI
+executives (from 16 roles across 5 divisions), orchestrates their work,
+and delivers structured results.
+
+"Hire AI employees. Describe the outcome. We deliver."
+
+## CORE CONCEPTS
+
+### Engagements (Universal Work Unit)
+Every interaction is an "engagement" with a mode:
+- Task: 1 role, 1 request, 1 response (30-120 sec)
+- Project: 2-6 roles, coordinated deliverable (hours-days)
+- Department: 2-4 roles, ongoing with heartbeats (monthly)
+- Company: 4-8 roles, build + operate (monthly)
+Same codebase, same infra, different config parameters.
+
+### Dynamic Team Assembly
+Customer NEVER picks roles. They describe objectives.
+Orchestrator (Claude) analyzes request → proposes team → customer approves.
+Solo messages auto-route to best single role. No confirmation needed.
+
+### Organization + Member (B2B-Ready)
+Every B2C customer is an org of one. Every B2B company is an org of many.
+Soul document splits: org_soul (company knowledge) + member_profile (individual).
+All context is org-scoped. Members share the AI workforce.
+
+### Agentic ReAct Loop
+Claude decides what tools to call, observes results, self-corrects.
+Every tool call → Permission Gate. Every iteration → Cost Governor.
+Every step → Audit Trail. Web content → Firewall. Output → Validator.
+
+### Five-Layer Security
+1. Permission Gate (tool_proxy.py) — role tool allowlists
+2. Prompt Firewall (firewall.py) — web content sanitized
+3. Output Validator (output_validator.py) — leak detection, disclaimers
+4. Cost Governor (cost_governor.py) — iteration/token/time limits
+5. Audit Trail (audit.py) — append-only log
+
+### Three-Tier Actions
+- Tier 1 OBSERVE: web_search, read_url, recall_context (no confirmation)
+- Tier 2 DRAFT: draft_email, draft_document (user must approve)
+- Tier 3 EXECUTE: send_email (authorization + limits) — Phase 2
+
+### Paperclip-Inspired Patterns
+1. Goal Ancestry: every task carries the engagement objective, the role's
+   purpose, completed dependencies, and downstream dependents in the system
+   prompt. Agent knows WHY, not just WHAT. Passed via goal_ancestry dict.
+2. Visible Reasoning Trace: /trace/{task_id} endpoint generates human-readable
+   narrative from audit trail.
+3. Per-Role Budget: each role in an engagement can have a monthly_budget_cents.
+   CostMeter checks this before every iteration.
+4. Atomic Task Checkout: tasks.checked_out_by prevents double-work in
+   multi-agent engagements.
+5. Heartbeat Pattern: roles in ongoing engagements wake on schedule, check
+   for work, and deliver proactively.
+
+## ARCHITECTURE
+
+Channels (Telegram/Slack/PWA/API) → Go Backend → Python Engine → Claude API
+                                        ↕
+                                   PostgreSQL
+
+## DATABASE TABLES
+organizations, members, org_context, member_profiles, engagements,
+tasks, role_catalog, agent_audit_trail, agent_sessions,
+confirmation_requests, daily_cost_tracking, billing_events,
+customer_credentials, contacts, scheduled_actions, message_log,
+customer_channels, sms_log, capability_registry
+
+## CONVENTIONS
+- Go: net/http, lib/pq, uuid.UUID, context.Context first param
+- Python: FastAPI, Anthropic SDK, all tools through ToolProxy
+- Security: agent never calls external services directly
+- Every engagement has an org_id. Every task has org_id + member_id + engagement_id.
+- No bare except in Python — always catch specific exceptions or at least Exception
+- Error messages to agents: type only, never internals. Full detail to audit.
+- All Claude API calls wrapped in try/except with graceful fallback.
+- All LLM-returned values (role_slug, engagement_type) validated against known sets.
