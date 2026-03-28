@@ -54,10 +54,13 @@ async def check_daily_limit(org_id, tier):
         if r.status_code == 200:
             spent = r.json().get("estimated_cost_cents", 0)
             return spent < limits.daily_cost_ceiling_cents, max(0, limits.daily_cost_ceiling_cents - spent)
+        else:
+            logger.warning(f"daily limit check non-200 for {org_id}: {r.status_code}",
+                extra={"org_id": org_id, "status_code": r.status_code})
     except Exception as e:
         logger.warning(f"daily limit check failed for {org_id}: {type(e).__name__}",
             extra={"org_id": org_id})
-        return False, 0
+    return False, 0
 
 async def record_task_cost(org_id, tokens, tool_calls):
     try:

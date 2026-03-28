@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS members (
   email VARCHAR(255),
   telegram_user_id BIGINT UNIQUE,
   slack_user_id VARCHAR(100),
+  whatsapp_id VARCHAR(30),
   role_in_company VARCHAR(100),
   preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
   active_channel VARCHAR(20) NOT NULL DEFAULT 'telegram',
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS members (
 CREATE INDEX IF NOT EXISTS idx_members_org ON members(org_id);
 CREATE INDEX IF NOT EXISTS idx_members_telegram ON members(telegram_user_id);
 CREATE INDEX IF NOT EXISTS idx_members_slack ON members(slack_user_id);
+CREATE INDEX IF NOT EXISTS idx_members_whatsapp ON members(whatsapp_id);
 
 DROP TRIGGER IF EXISTS members_updated_at ON members;
 CREATE TRIGGER members_updated_at BEFORE UPDATE ON members

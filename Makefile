@@ -22,6 +22,7 @@ migrate-all:
 	docker compose exec -T postgres psql -U inaiurai -d inaiurai < db/migrations/006_organizations.sql
 	docker compose exec -T postgres psql -U inaiurai -d inaiurai < db/migrations/007_engagements.sql
 	docker compose exec -T postgres psql -U inaiurai -d inaiurai < db/migrations/008_enterprise_hardening.sql
+	docker compose exec -T postgres psql -U inaiurai -d inaiurai < db/migrations/009_api_tokens.sql
 	@echo "All migrations complete."
 
 seed:

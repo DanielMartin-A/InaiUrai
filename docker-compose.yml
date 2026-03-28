@@ -1,8 +1,6 @@
 services:
   postgres:
     image: postgres:16-alpine
-    # SECURITY: No host port binding. Only accessible within Docker network.
-    # For local dev debugging, uncomment: ports: ["5432:5432"]
     expose: ["5432"]
     environment:
       POSTGRES_DB: inaiurai
@@ -16,7 +14,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    # SECURITY: No host port binding. Internal only.
     expose: ["6379"]
 
   backend:
@@ -40,6 +37,12 @@ services:
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
       SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET:-}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      EMAIL_DOMAIN: ${EMAIL_DOMAIN:-inaiurai.com}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}

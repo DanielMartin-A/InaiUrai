@@ -35,18 +35,20 @@ CRITICAL RULES (enforced by system):
 PARTIAL_RESULT = "You have reached the resource limit. Produce the best output with information gathered so far. Be transparent about what you couldn't complete."
 
 
+import re as _re
+_CONTEXT_INJECTION_PATTERNS = [
+    _re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)", _re.I),
+    _re.compile(r"system\s*prompt\s*:", _re.I),
+    _re.compile(r"<\s*system\s*>", _re.I),
+    _re.compile(r"\{\s*\"role\"\s*:\s*\"system\"", _re.I),
+    _re.compile(r"(output|print|display|show)\s+(your|the)\s+(system\s+prompt|instructions)", _re.I),
+]
+
+
 def _sanitize_context(text: str) -> str:
     """Lightweight injection check for org-provided context injected into system prompt."""
-    import re
-    CONTEXT_INJECTION_PATTERNS = [
-        re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)", re.I),
-        re.compile(r"system\s*prompt\s*:", re.I),
-        re.compile(r"<\s*system\s*>", re.I),
-        re.compile(r"\{\s*\"role\"\s*:\s*\"system\"", re.I),
-        re.compile(r"(output|print|display|show)\s+(your|the)\s+(system\s+prompt|instructions)", re.I),
-    ]
     sanitized = text
-    for p in CONTEXT_INJECTION_PATTERNS:
+    for p in _CONTEXT_INJECTION_PATTERNS:
         sanitized = p.sub("[REMOVED]", sanitized)
     return sanitized
 
