@@ -5,33 +5,37 @@
 -- 1. ROW-LEVEL SECURITY (RLS) — Prevent cross-tenant data access
 -- ============================================================================
 
+-- RLS is enabled on all tenant tables but NOT forced on the table owner.
+-- The backend connects as the DB owner (inaiurai), which bypasses RLS by default.
+-- When a dedicated app role (e.g. inaiurai_app) is introduced, add FORCE ROW LEVEL
+-- SECURITY and ensure every query sets app.current_org_id via WithOrgScope.
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY org_isolation ON organizations
+CREATE POLICY IF NOT EXISTS org_isolation ON organizations
   USING (id = current_setting('app.current_org_id', true)::uuid);
-ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
-CREATE POLICY member_org_isolation ON members
+CREATE POLICY IF NOT EXISTS member_org_isolation ON members
   USING (org_id = current_setting('app.current_org_id', true)::uuid);
 
 ALTER TABLE org_context ENABLE ROW LEVEL SECURITY;
-CREATE POLICY context_org_isolation ON org_context
+CREATE POLICY IF NOT EXISTS context_org_isolation ON org_context
   USING (org_id = current_setting('app.current_org_id', true)::uuid);
 
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY profiles_org_isolation ON member_profiles
+CREATE POLICY IF NOT EXISTS profiles_org_isolation ON member_profiles
   USING (org_id = current_setting('app.current_org_id', true)::uuid);
 
 ALTER TABLE engagements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY engagements_org_isolation ON engagements
+CREATE POLICY IF NOT EXISTS engagements_org_isolation ON engagements
   USING (org_id = current_setting('app.current_org_id', true)::uuid);
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tasks_org_isolation ON tasks
+CREATE POLICY IF NOT EXISTS tasks_org_isolation ON tasks
   USING (org_id IS NULL OR org_id = current_setting('app.current_org_id', true)::uuid);
 
 ALTER TABLE agent_audit_trail ENABLE ROW LEVEL SECURITY;
-CREATE POLICY audit_org_isolation ON agent_audit_trail
+CREATE POLICY IF NOT EXISTS audit_org_isolation ON agent_audit_trail
   USING (org_id IS NULL OR org_id = current_setting('app.current_org_id', true)::uuid);
 
 -- ============================================================================

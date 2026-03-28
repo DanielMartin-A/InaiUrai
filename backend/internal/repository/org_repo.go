@@ -40,9 +40,10 @@ func (r *OrgRepo) SetOrgContext(ctx context.Context, tx *sql.Tx, orgID uuid.UUID
 func (r *OrgRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.Organization, error) {
 	org := &models.Organization{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, industry, website, subscription_plan, tasks_used_this_month, tasks_limit,
-		 members_limit, roles_limit, free_tasks_remaining, COALESCE(stripe_customer_id,''),
-		 COALESCE(stripe_subscription_id,''), onboarded, created_at, updated_at
+		`SELECT id, name, COALESCE(industry,''), COALESCE(website,''), subscription_plan,
+		 tasks_used_this_month, tasks_limit, members_limit, roles_limit, free_tasks_remaining,
+		 COALESCE(stripe_customer_id,''), COALESCE(stripe_subscription_id,''),
+		 onboarded, created_at, updated_at
 		 FROM organizations WHERE id = $1`, id).Scan(
 		&org.ID, &org.Name, &org.Industry, &org.Website, &org.SubscriptionPlan,
 		&org.TasksUsedThisMonth, &org.TasksLimit, &org.MembersLimit, &org.RolesLimit,
